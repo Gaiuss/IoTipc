@@ -3,20 +3,26 @@ package com.iot.ipc.activity;
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.Button;
+import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.AppCompatEditText;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
+import com.google.zxing.WriterException;
 import com.iot.ipc.R;
 import com.iot.ipc.google.zxing.activity.CaptureActivity;
+import com.iot.ipc.google.zxing.encoding.EncodingHandler;
 import com.tuya.smart.aiipc.ipc_sdk.IPCSDK;
 import com.tuya.smart.aiipc.ipc_sdk.api.IMediaTransManager;
 import com.tuya.smart.aiipc.ipc_sdk.api.IMqttProcessManager;
@@ -24,17 +30,25 @@ import com.tuya.smart.aiipc.ipc_sdk.api.INetConfigManager;
 import com.tuya.smart.aiipc.ipc_sdk.service.IPCServiceManager;
 import com.tuya.smart.aiipc.netconfig.mqtt.TuyaNetConfig;
 
+import java.util.Objects;
+
 public class MainActivity extends AppCompatActivity {
 
     public static final int REQUEST_CODE = 0;
+    private TextView tvQR;
+    private AppCompatEditText etQR;
+    private ImageView ivQR;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        tvQR = findViewById(R.id.tv_qr_code);
         Button btnNet = findViewById(R.id.btn_net);
         Button btnUnNet = findViewById(R.id.btn_un_net);
+        etQR = findViewById(R.id.et_qr_code);
+        ivQR = findViewById(R.id.iv_qr_code);
 
 //        PermissionUtil.check(this, new String[]{
 //                Manifest.permission.WRITE_EXTERNAL_STORAGE,
@@ -48,11 +62,25 @@ public class MainActivity extends AppCompatActivity {
 //            } else {
 //                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, 123);
 //            }
-            onScan();
+            getScan();
         });
+
+        btnUnNet.setOnClickListener(view -> setScan());
     }
 
-    private void onScan() {
+    private void setScan() {
+        try {
+            String str = Objects.requireNonNull(etQR.getText()).toString().trim();
+            if (!"".equals(str)) {
+                Bitmap bitmap = EncodingHandler.createQRCode(str, 700);
+                ivQR.setImageBitmap(bitmap);
+            }
+        } catch (WriterException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void getScan() {
         if (Build.VERSION.SDK_INT >= 23) {
             int request = ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA);
             if (request != PackageManager.PERMISSION_GRANTED) {
@@ -81,16 +109,13 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (resultCode == RESULT_OK) {
-            Bundle bundle = null;
-            if (data != null) {
-                bundle = data.getExtras();
-            }
-            String scanResult = null;
-            if (bundle != null) {
-                scanResult = bundle.getString("result");
-            }
-            Toast.makeText(MainActivity.this, scanResult, Toast.LENGTH_LONG).show();
+        if (requestCode == 0 && resultCode == 161) {
+            assert data != null;
+            Bundle bundle = data.getExtras();
+            assert bundle != null;
+            String scanResult = bundle.getString("qr_scan_result");
+            //Toast.makeText(MainActivity.this, scanResult, Toast.LENGTH_LONG).show();
+            tvQR.setText(scanResult);
         }
     }
 
