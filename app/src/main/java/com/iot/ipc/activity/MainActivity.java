@@ -23,6 +23,7 @@ import com.google.zxing.WriterException;
 import com.iot.ipc.R;
 import com.iot.ipc.google.zxing.activity.CaptureActivity;
 import com.iot.ipc.google.zxing.encoding.EncodingHandler;
+import com.iot.ipc.util.DeviceUuidFactory;
 import com.tuya.smart.aiipc.ipc_sdk.IPCSDK;
 import com.tuya.smart.aiipc.ipc_sdk.api.IMediaTransManager;
 import com.tuya.smart.aiipc.ipc_sdk.api.IMqttProcessManager;
@@ -30,7 +31,8 @@ import com.tuya.smart.aiipc.ipc_sdk.api.INetConfigManager;
 import com.tuya.smart.aiipc.ipc_sdk.service.IPCServiceManager;
 import com.tuya.smart.aiipc.netconfig.mqtt.TuyaNetConfig;
 
-import java.util.Objects;
+import java.util.ArrayList;
+import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -50,6 +52,8 @@ public class MainActivity extends AppCompatActivity {
         etQR = findViewById(R.id.et_qr_code);
         ivQR = findViewById(R.id.iv_qr_code);
 
+        initPermission();
+
 //        PermissionUtil.check(this, new String[]{
 //                Manifest.permission.WRITE_EXTERNAL_STORAGE,
 //                Manifest.permission.READ_EXTERNAL_STORAGE,
@@ -66,13 +70,51 @@ public class MainActivity extends AppCompatActivity {
         });
 
         btnUnNet.setOnClickListener(view -> setScan());
+
+    }
+
+    private void initPermission() {
+        if (Build.VERSION.SDK_INT >= 23) {
+            List<String> permissionList = new ArrayList<>();
+
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
+                    != PackageManager.PERMISSION_GRANTED) {
+                permissionList.add(Manifest.permission.CAMERA);
+            }
+
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_PHONE_STATE)
+                    != PackageManager.PERMISSION_GRANTED) {
+                permissionList.add(Manifest.permission.READ_PHONE_STATE);
+            }
+
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                    != PackageManager.PERMISSION_GRANTED) {
+                permissionList.add(Manifest.permission.WRITE_EXTERNAL_STORAGE);
+            }
+
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE)
+                    != PackageManager.PERMISSION_GRANTED) {
+                permissionList.add(Manifest.permission.READ_EXTERNAL_STORAGE);
+            }
+
+            if (!permissionList.isEmpty()) {
+                ActivityCompat.requestPermissions(this, permissionList.toArray(new String[permissionList.size()]), 1002);
+            }
+
+//            int request = ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA);
+//            if (request != PackageManager.PERMISSION_GRANTED) {
+//                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, 123);
+//            }
+        }
     }
 
     private void setScan() {
         try {
-            String str = Objects.requireNonNull(etQR.getText()).toString().trim();
-            if (!"".equals(str)) {
-                Bitmap bitmap = EncodingHandler.createQRCode(str, 700);
+            //String str = Objects.requireNonNull(etQR.getText()).toString().trim();
+            String uuid = String.valueOf(DeviceUuidFactory.getInstance(this).getDeviceUuid());
+            uuid = "https://smartapp.tuya.com/s/p?p=ry2aco3c0bd5c3lz&uuid=" + uuid + "&v=2.0";
+            if (!"".equals(uuid)) {
+                Bitmap bitmap = EncodingHandler.createQRCode(uuid, 300);
                 ivQR.setImageBitmap(bitmap);
             }
         } catch (WriterException e) {
@@ -81,29 +123,43 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void getScan() {
-        if (Build.VERSION.SDK_INT >= 23) {
-            int request = ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA);
-            if (request != PackageManager.PERMISSION_GRANTED) {
-                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, 123);
-            } else {
-                Intent intent = new Intent(this, CaptureActivity.class);
-                startActivityForResult(intent, REQUEST_CODE);
-            }
-        }
+//        if (Build.VERSION.SDK_INT >= 23) {
+//            int request = ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA);
+//            if (request != PackageManager.PERMISSION_GRANTED) {
+//                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, 123);
+//            } else {
+
+        Intent intent = new Intent(this, CaptureActivity.class);
+        startActivityForResult(intent, REQUEST_CODE);
+//            }
+//        }
     }
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        switch (requestCode) {
+            case 1002:
+                if (grantResults.length > 0) {
+                    for (int i = 0; i < grantResults.length; i++) {
+                        if (grantResults[i] == PackageManager.PERMISSION_DENIED) {
+                            Toast.makeText(MainActivity.this, permissions[i] + "权限被拒绝了", Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                }
+                break;
+        }
+
 //        if (hasPermission(MainActivity.this, permissions)) {
 //            Intent intent = new Intent(this, CaptureActivity.class);
 //            startActivityForResult(intent, REQUEST_CODE);
 //        }
-        if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-            Toast.makeText(this, "权限申请成功", Toast.LENGTH_SHORT).show();
-        } else if (grantResults[0] == PackageManager.PERMISSION_DENIED) {
-            Toast.makeText(this, "权限申请失败，用户拒绝权限", Toast.LENGTH_SHORT).show();
-        }
+
+//        if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+//            Toast.makeText(this, "权限申请成功", Toast.LENGTH_SHORT).show();
+//        } else if (grantResults[0] == PackageManager.PERMISSION_DENIED) {
+//            Toast.makeText(this, "权限申请失败，用户拒绝权限", Toast.LENGTH_SHORT).show();
+//        }
     }
 
     @Override
