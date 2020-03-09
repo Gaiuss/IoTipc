@@ -40,6 +40,8 @@ public class MainActivity extends AppCompatActivity {
     private TextView tvQR;
     private AppCompatEditText etQR;
     private ImageView ivQR;
+    private String uuid = "";
+    private static final String PID = "ry2aco3c0bd5c3lz";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -66,10 +68,10 @@ public class MainActivity extends AppCompatActivity {
 //            } else {
 //                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, 123);
 //            }
-            getScan();
+            setScan();
         });
 
-        btnUnNet.setOnClickListener(view -> setScan());
+        btnUnNet.setOnClickListener(view -> getScan());
 
     }
 
@@ -111,8 +113,6 @@ public class MainActivity extends AppCompatActivity {
     private void setScan() {
         try {
             //String str = Objects.requireNonNull(etQR.getText()).toString().trim();
-            String uuid = String.valueOf(DeviceUuidFactory.getInstance(this).getDeviceUuid());
-            uuid = "https://smartapp.tuya.com/s/p?p=ry2aco3c0bd5c3lz&uuid=" + uuid + "&v=2.0";
             if (!"".equals(uuid)) {
                 Bitmap bitmap = EncodingHandler.createQRCode(uuid, 300);
                 ivQR.setImageBitmap(bitmap);
@@ -146,6 +146,9 @@ public class MainActivity extends AppCompatActivity {
                             Toast.makeText(MainActivity.this, permissions[i] + "权限被拒绝了", Toast.LENGTH_SHORT).show();
                         }
                     }
+                } else {
+                    String strUUID = String.valueOf(DeviceUuidFactory.getInstance(this).getDeviceUuid());
+                    uuid = "https://smartapp.tuya.com/s/p?p=ry2aco3c0bd5c3lz&uuid=" + strUUID + "&v=2.0";
                 }
                 break;
         }
